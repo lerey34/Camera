@@ -10,7 +10,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,8 +23,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,19 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import coil.compose.rememberImagePainter
 import fr.rey.camera.ui.theme.CameraTheme
 import kotlinx.coroutines.launch
-import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
-@OptIn(ExperimentalMaterialApi::class)
+@ExperimentalMaterialApi
 class MainActivity : ComponentActivity() {
-    
-    private val PIC_CROP = 2
     var isCameraSelected = false
     var imageUri: Uri? = null
     var bitmap: Bitmap? = null
@@ -59,20 +49,23 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CameraTheme {
-                Scaffold(
-                    topBar = {
-                        TopAppBar (
-                            title = {
-                                Text(
-                                    text = "Capture Image or Choose Image",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        )
+                Surface(color = MaterialTheme.colors.background) {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Text(
+                                        text = "Capture Image / From Gallery",
+                                        modifier = Modifier
+                                            .fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            )
+                        }
+                    ) {
+                        TakePicture(bitmap)
                     }
-                ){
-                    TakePicture(bitmap)
                 }
             }
         }
@@ -81,27 +74,28 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun TakePicture(bitmap: Bitmap?) {
         val context = LocalContext.current
-        val bottomSheetModalState = rememberModalBottomSheetState(
-            initialValue = ModalBottomSheetValue.Hidden
-        )
+        val bottomSheetModalState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
         val coroutineScope = rememberCoroutineScope()
+        
         val galleryLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
-        ){ uri: Uri? ->
+        ) { uri: Uri? ->
             this.imageUri = uri
             this.bitmap = null
         }
+        
         val cameraLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.TakePicturePreview()
         ) { btm: Bitmap? ->
             this.bitmap = btm
             this.imageUri = null
         }
+        
         val permissionLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
-            if (isGranted){
-                if (isCameraSelected){
+            if (isGranted) {
+                if (isCameraSelected) {
                     cameraLauncher.launch()
                 } else {
                     galleryLauncher.launch("image/*")
@@ -113,17 +107,19 @@ class MainActivity : ComponentActivity() {
                 Toast.makeText(context, "Permission Denied!", Toast.LENGTH_SHORT).show()
             }
         }
+        
         ModalBottomSheetLayout(
             sheetContent = {
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .background(
-                        MaterialTheme.colors.primary.copy(
-                            0.08f
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .background(
+                            MaterialTheme.colors.primary.copy(
+                                0.08f
+                            )
                         )
-                    )
-                ){
+                ) {
                     Column(
                         verticalArrangement = Arrangement.SpaceEvenly,
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -146,7 +142,7 @@ class MainActivity : ComponentActivity() {
                                 )
                         )
                         Text(
-                            text = "Take Photo!",
+                            text = "Take Photo",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
@@ -154,7 +150,7 @@ class MainActivity : ComponentActivity() {
                                         ContextCompat.checkSelfPermission(
                                             context,
                                             Manifest.permission.CAMERA
-                                        )    -> {
+                                        ) -> {
                                             cameraLauncher.launch()
                                             coroutineScope.launch {
                                                 bottomSheetModalState.hide()
@@ -171,19 +167,17 @@ class MainActivity : ComponentActivity() {
                                 }
                                 .padding(15.dp),
                             color = Color.Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
                             fontFamily = FontFamily.SansSerif
                         )
                         Divider(
                             modifier = Modifier
-                                .height(1.dp)
-                                .background(
-                                    MaterialTheme.colors.primary
-                                )
+                                .height(0.5.dp)
+                                .fillMaxWidth()
+                                .background(Color.LightGray)
                         )
                         Text(
-                            text = "Choose from Gallery !",
+                            text = "Choose from Gallery",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
@@ -191,7 +185,7 @@ class MainActivity : ComponentActivity() {
                                         ContextCompat.checkSelfPermission(
                                             context,
                                             Manifest.permission.READ_EXTERNAL_STORAGE
-                                        )    -> {
+                                        ) -> {
                                             galleryLauncher.launch(
                                                 "image/*"
                                             )
@@ -210,16 +204,14 @@ class MainActivity : ComponentActivity() {
                                 }
                                 .padding(15.dp),
                             color = Color.Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
                             fontFamily = FontFamily.SansSerif
                         )
                         Divider(
                             modifier = Modifier
-                                .height(1.dp)
-                                .background(
-                                    MaterialTheme.colors.primary
-                                )
+                                .height(0.5.dp)
+                                .fillMaxWidth()
+                                .background(Color.LightGray)
                         )
                         Text(
                             text = "Cancel",
@@ -232,8 +224,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 .padding(15.dp),
                             color = Color.Black,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
                             fontFamily = FontFamily.SansSerif
                         )
                     }
@@ -243,7 +234,7 @@ class MainActivity : ComponentActivity() {
             sheetShape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
             modifier = Modifier
                 .background(MaterialTheme.colors.background)
-        ){
+        ) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
@@ -272,16 +263,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        
         imageUri?.let {
-            if (!isCameraSelected){
-                this.bitmap =
-                    if (Build.VERSION.SDK_INT < 28) {
-                        MediaStore.Images.Media.getBitmap(context.contentResolver, it)
-                    } else {
-                        val source = ImageDecoder.createSource(context.contentResolver, it)
-                        ImageDecoder.decodeBitmap(source)
-                    }
+            if (!isCameraSelected) {
+                this.bitmap = if (Build.VERSION.SDK_INT < 28) {
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                } else {
+                    val source = ImageDecoder.createSource(context.contentResolver, it)
+                    ImageDecoder.decodeBitmap(source)
+                }
             }
+            
             this.bitmap?.let { btm ->
                 Image(
                     bitmap = btm.asImageBitmap(),
@@ -294,18 +286,6 @@ class MainActivity : ComponentActivity() {
                     contentScale = ContentScale.Fit
                 )
             }
-        }
-        bitmap?.let { btm ->
-            Image(
-                bitmap = btm.asImageBitmap(),
-                contentDescription = "Image",
-                alignment = Alignment.TopCenter,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.45f)
-                    .padding(top = 10.dp),
-                contentScale = ContentScale.Fit
-            )
         }
         
         bitmap?.let { btm ->
@@ -322,33 +302,28 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
-        super.onActivityResult(
-            requestCode,
-            resultCode,
-            data
-        )
-        if (resultCode == Activity.RESULT_OK){
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK) {
             setContent {
                 CameraTheme {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar (
-                                title = {
-                                    Text(
-                                        text = "Capture Image or Choose Image",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            )
+                    Surface(color = MaterialTheme.colors.background) {
+                        Scaffold(
+                            topBar = {
+                                TopAppBar(
+                                    title = {
+                                        Text(
+                                            text = "Capture Image / From Gallery",
+                                            modifier = Modifier
+                                                .fillMaxWidth(),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                )
+                            }
+                        ) {
+                            TakePicture(bitmap)
                         }
-                    ){
-                        TakePicture(bitmap)
                     }
                 }
             }
